@@ -1,7 +1,10 @@
 
+
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from model import LoginRequest
+from auth.auth import validate_token, generate_token
+from models.model import LoginRequest
+from fastapi import Depends, FastAPI, HTTPException
+
 
 app = FastAPI(
     title='FastAPI JWT', openapi_url='/openapi.json', docs_url='/docs',
@@ -19,6 +22,12 @@ def verify_password(username, password):
 def login(request_data: LoginRequest):
     print(f'[x] request_data: {request_data.__dict__}')
     if verify_password(username=request_data.username, password=request_data.password):
-        return 'Success'
+        token = generate_token(request_data.username)
+        return {'token': token}
     else:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+@app.get('/books', dependencies=[Depends(validate_token)])
+def list_books():
+    return {'data': ['Sherlock Homes', 'Harry Potter', 'Rich Dad Poor Dad']}
